@@ -1,0 +1,26 @@
+"question","city","listings","avg_list_price","avg_sqft","avg_price_per_sqft"
+Q1_avg_list_price,Newport Coast,45,538715,,
+Q1_avg_list_price,Carpinteria,16,538715,,
+Q1_avg_list_price,Hillsborough,18,538715,,
+Q1_avg_list_price,Atherton,10,538715,,
+Q1_avg_list_price,Hidden Hills,34,538715,,
+Q1_avg_list_price,Los Altos Hills,19,538715,,
+Q1_avg_list_price,Beverly Hills,299,538715,,
+Q1_avg_list_price,Santa Ynez,21,538715,,
+Q1_avg_list_price,Rancho Santa Fe,110,538715,,
+Q1_avg_list_price,Malibu,316,538715,,
+Q3_avg_price_per_sqft,Novato,9,538715,1704,337.05
+Q3_avg_price_per_sqft,East Palo Alto,25,538715,1704,337.05
+Q3_avg_price_per_sqft,Mountain View,82,538715,1704,337.05
+Q3_avg_price_per_sqft,La Grange,10,538715,1704,337.05
+Q3_avg_price_per_sqft,Summerland,3,538715,1704,337.05
+Q3_avg_price_per_sqft,Carpinteria,15,538715,1704,337.05
+Q3_avg_price_per_sqft,Laguna Beach,160,538715,1704,337.05
+Q3_avg_price_per_sqft,Oak Glen,7,538715,1704,337.05
+Q3_avg_price_per_sqft,Newport Coast,45,538715,1704,337.05
+Q3_avg_price_per_sqft,Corona Del Mar,80,538715,1704,337.05
+Q3_avg_price_per_sqft,Malibu,310,538715,1704,337.05
+Q3_avg_price_per_sqft,Montecito,9,538715,1704,337.05
+Q3_avg_price_per_sqft,Hillsborough,18,538715,1704,337.05
+Q3_avg_price_per_sqft,Atherton,10,538715,1704,337.05
+Q3_avg_price_per_sqft,Escalon,1,538715,1704,337.05
