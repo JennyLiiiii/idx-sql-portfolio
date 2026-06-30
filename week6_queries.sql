@@ -181,4 +181,86 @@ FROM active_city a
 JOIN sold_city s
     ON LOWER(a.city) = LOWER(s.city)
 ORDER BY ratio DESC;
-		
+
+-- BROKEN: Most expensive listing in each city
+SELECT L_DisplayId, L_Address, City, ListPrice,
+RANK() OVER (
+PARTITION BY City ORDER BY ListPrice DESC
+) AS rank_in_city
+FROM rets_property
+WHERE ListPrice IS NOT NULL
+AND rank_in_city = 1 -- Bug: cannot filter on window function here
+ORDER BY City;
+
+-- Debug
+WITH ranked AS (
+	SELECT L_DisplayId, L_Address, L_City, L_SystemPrice,
+		   RANK() OVER (
+		   	PARTITION BY L_City ORDER BY L_SystemPrice DESC
+		   ) AS rank_in_city
+	FROM rets_property
+	WHERE L_SystemPrice IS NOT NULL
+	  AND L_City IS NOT NULL
+)
+
+SELECT *
+FROM ranked
+WHERE rank_in_city = 1
+ORDER BY L_City;
+
+-- Exercise 6.1
+SELECT L_DisplayId, L_Address, L_City, L_SystemPrice,
+	   ROUND(AVG(L_SystemPrice) OVER (PARTITION BY L_City), 0) AS city_avg_price,
+	   ROUND(L_SystemPrice - AVG(L_SystemPrice) OVER
+	   	(PARTITION BY L_City), 0) AS diff_from_city_avg,
+	   RANK() OVER (
+	   	PARTITION BY L_City ORDER BY L_SystemPrice DESC
+	   ) AS rank_in_city
+FROM rets_property
+WHERE L_SystemPrice IS NOT NULL
+  AND L_City IS NOT NULL
+ORDER BY L_City, rank_in_city LIMIT 30;
+
+-- Exercise 6.2
+WITH city_stats AS (
+	SELECT City,
+		AVG(ListPrice) AS city_avg,
+		STDDEV(ListPrice) AS city_stddev
+	FROM california_sold cs 
+	WHERE ListPrice IS NOT NULL
+	GROUP BY City HAVING COUNT(*) >= 5
+)
+SELECT p.L_DisplayId, p.L_Address, p.L_City, p.L_SystemPrice,
+	   ROUND(cs.city_avg, 0) AS city_avg_price,
+	   ROUND(p.L_SystemPrice / cs.city_avg * 100, 1) AS pct_of_city_avg
+FROM rets_property p
+JOIN city_stats cs ON p.L_City = cs.City
+WHERE p.L_SystemPrice > cs.city_avg * 1.5
+ORDER BY pct_of_city_avg DESC LIMIT 20;
+
+-- Exercise 6.3
+WITH quartiles AS (
+	SELECT ClosePrice, City,
+		NTILE(4) OVER (ORDER BY ClosePrice) AS price_quartile
+	FROM california_sold WHERE ClosePrice IS NOT NULL
+)
+SELECT price_quartile,
+	   COUNT(*) AS num_sold,
+	   ROUND(MIN(ClosePrice), 0) AS min_price,
+	   ROUND(MAX(ClosePrice), 0) AS max_price,
+	   ROUND(AVG(ClosePrice), 0) AS avg_price
+FROM quartiles
+GROUP BY price_quartile ORDER BY price_quartile;
+
+-- Exercise 6.4
+WITH monthly AS (
+	SELECT DATE_FORMAT(ListingContractDate, '%Y-%m') AS list_month,
+		COUNT(*) AS new_listings
+	FROM rets_property WHERE ListingContractDate IS NOT NULL
+	GROUP BY DATE_FORMAT(ListingContractDate, '%Y-%m')
+)
+SELECT list_month, new_listings,
+	SUM(new_listings) OVER (
+		ORDER BY list_month ROWS UNBOUNDED PRECEDING
+	) AS running_total
+FROM monthly ORDER BY list_month;
