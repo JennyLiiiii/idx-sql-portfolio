@@ -1,9 +1,15 @@
 -- ============================================================
--- IDX Exchange - Internship
--- Week 2: queries
--- Tables: rets_property, rets_openhouse, california_sold
--- Author: Jenny
+-- IDX Exchange - Data Analyst Internship
+-- Week 2: SELECT, WHERE, and ORDER BY
+-- Tables: rets_property
+-- Author: Jenny Li
 -- ============================================================
+
+-- AFFORDABILITY RECOMMENDATION
+-- For a buyer's guide, use both total price and property size: first identify
+-- homes below a practical budget, then compare price per square foot so a low
+-- sticker price is not mistaken for good value. The queries below demonstrate
+-- the filters needed to build those two views.
 
 -- Select specific columns
 SELECT L_DisplayId, L_Address, L_City, L_SystemPrice,
@@ -49,18 +55,28 @@ WHERE LM_Int2_3 IS NOT NULL
 ORDER BY LM_Int2_3 DESC
 LIMIT 10;
 
--- BROKEN: 10 cheapest listings in Portland with a valid price
-SELECT L_Address, L_City, L_SystemPrice
-FROM rets_property
-WHERE L_City = Portland -- Bug 1
-AND L_SystemPrice IS NOT NULL
-ORDER BY L_SystemPrice ASC
-LIMIT '10'; -- Bug 2
+-- BROKEN: Return the 10 cheapest Beverly Hills listings with a valid price.
+-- SELECT L_Address, L_City, L_SystemPrice
+-- FROM rets_property
+-- WHERE L_City = Beverly Hills
+--   AND L_SystemPrice IS NOT NULL
+-- ORDER BY L_SystemPrice ASC
+-- LIMIT '10';
 
--- Debug
-SELECT L_Address, L_City, L_SystemPrice
+-- DEBUG NOTES:
+-- The guide's original query is intentionally incorrect: Beverly Hills is unquoted
+-- and LIMIT is written as '10'. MySQL interprets an unquoted word as a column
+-- name, while LIMIT expects an integer. The error messages point to those two
+-- locations. 
+-- Fixed: quote the city string and leave the row limit unquoted.
+
+-- FIXED:
+SELECT
+    L_Address,
+    L_City,
+    L_SystemPrice
 FROM rets_property
 WHERE L_City = 'Beverly Hills'
-AND L_SystemPrice IS NOT NULL
+  AND L_SystemPrice IS NOT NULL
 ORDER BY L_SystemPrice ASC
 LIMIT 10;

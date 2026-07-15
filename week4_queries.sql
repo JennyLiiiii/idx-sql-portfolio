@@ -1,9 +1,15 @@
 -- ============================================================
--- IDX Exchange - Internship
--- Week 4: queries
--- Tables: rets_property, rets_openhouse, california_sold
--- Author: Jenny
+-- IDX Exchange - Data Analyst Internship
+-- Week 4: Multi-Table Analysis with JOINs
+-- Tables: rets_property, rets_openhouse
+-- Author: Jenny Li
 -- ============================================================
+
+-- OPEN-HOUSE CAMPAIGN RECOMMENDATION
+-- Los Angeles, San Diego, and San Jose have the highest observed open-house
+-- volumes in the exported city summary, so they are the strongest initial
+-- markets for an event campaign. Schedule events on the highest-volume weekend
+-- day returned by the day-of-week query, then validate results with attendance.
 
 -- INNER JOIN: only listings that HAVE at least one open house
 SELECT rp.L_DisplayId, rp.L_Address, rp.L_City, rp.L_SystemPrice,
@@ -59,26 +65,30 @@ WHERE OpenHouseDate IS NOT NULL
 GROUP BY DAYNAME(OpenHouseDate), DAYOFWEEK(OpenHouseDate)
 ORDER BY DAYOFWEEK(OpenHouseDate);
 
--- BROKEN: Average list price by city for listings with open houses
--- Results are higher than expected — why?
-SELECT p.L_City,
-	   COUNT(*) AS listing_count,
-	   ROUND(AVG(p.L_SystemPrice), 0) AS avg_price
-FROM rets_property p
-INNER JOIN rets_openhouse o ON p.L_DisplayId = o.L_DisplayId
-GROUP BY p.L_City
-ORDER BY avg_price DESC
-LIMIT 15;
+-- BROKEN: Average list price by city for listings with open houses.
+-- The original query joined directly to every rets_openhouse row before AVG().
 
--- Debug
-SELECT rp.L_City,
-	   COUNT(DISTINCT rp.L_DisplayId) AS listing_count,
-	   ROUND(AVG(rp.L_SystemPrice), 0) AS avg_price
-FROM rets_property rp
-INNER JOIN(
-	SELECT DISTINCT L_DisplayId
-	FROM rets_property rp
-) ro ON rp.L_DisplayId = ro.L_DisplayId
-GROUP BY rp.L_City
+-- DEBUG NOTES:
+-- The guide's original query runs, but its result is logically wrong: a listing
+-- with several open houses appears several times after the join and therefore
+-- receives extra weight in COUNT(*) and AVG(). I diagnosed the silent bug by
+-- comparing COUNT(*) with COUNT(DISTINCT p.L_DisplayId). Fixed: deduplicate the
+-- open-house listing IDs before joining so each property contributes once.
+
+-- FIXED:
+WITH listings_with_open_houses AS (
+    SELECT DISTINCT
+        L_DisplayId
+    FROM rets_openhouse
+)
+SELECT
+    p.L_City,
+    COUNT(*) AS listing_count,
+    ROUND(AVG(p.L_SystemPrice), 0) AS avg_price
+FROM rets_property p
+INNER JOIN listings_with_open_houses o
+    ON p.L_DisplayId = o.L_DisplayId
+WHERE p.L_SystemPrice IS NOT NULL
+GROUP BY p.L_City
 ORDER BY avg_price DESC
 LIMIT 15;

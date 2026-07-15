@@ -1,9 +1,15 @@
 -- ============================================================
--- IDX Exchange - Internship
--- Week 5: queries
--- Tables: rets_property, rets_openhouse, california_sold
--- Author: Jenny
+-- IDX Exchange - Data Analyst Internship
+-- Week 5: Subqueries and CTEs
+-- Tables: rets_property, california_sold
+-- Author: Jenny Li
 -- ============================================================
+
+-- SACRAMENTO SELLER RECOMMENDATION
+-- Sacramento's historical sale-to-list ratio is about 100.8%, while the active
+-- average list price ($464,660) is below the historical average sold price
+-- ($503,196). This supports listing now, but pricing should stay close to recent
+-- comparables rather than assuming that every property will sell above asking.
 
 -- Find listings priced above the overall average
 SELECT L_Address, L_City, L_SystemPrice
@@ -61,7 +67,6 @@ FROM california_sold
 WHERE CloseDate IS NOT NULL
 GROUP BY YEAR(CloseDate), MONTH(CloseDate)
 ORDER BY avg_sold_price DESC;
--- ORDER BY sale_year, sale_month;
 -- Based on the result, June 2026 has the highest sold price. However, the homes_sold is only 947, it could be incomplete, 
 -- and thus, it should be interpreted carefully.
 
@@ -96,4 +101,38 @@ HAVING COUNT(*) >= 10
    AND ABS(AVG((ClosePrice - ListPrice) / ListPrice) * 100) <= 2
 ORDER BY avg_pct_diff_from_list DESC;
 
+-- BROKEN: Compare active prices with historical sold prices by raw city name.
+-- The original query joined p.L_City directly to h.City.
 
+-- DEBUG NOTES:
+-- The guide's original query runs, but the LEFT JOIN produces NULL historical
+-- values when city names differ in capitalization or surrounding spaces. I
+-- diagnosed it by comparing DISTINCT city values from both tables. 
+-- Fixed: LOWER(TRIM()) creates the same normalized join key on both sides.
+
+-- FIXED:
+WITH historical AS (
+    SELECT
+        LOWER(TRIM(City)) AS city_key,
+        ROUND(AVG(ClosePrice), 0) AS avg_sold
+    FROM california_sold
+    WHERE ClosePrice IS NOT NULL
+      AND City IS NOT NULL
+    GROUP BY LOWER(TRIM(City))
+)
+SELECT
+    p.L_City,
+    ROUND(AVG(p.L_SystemPrice), 0) AS avg_active_price,
+    h.avg_sold,
+    ROUND(
+        (AVG(p.L_SystemPrice) - h.avg_sold) / NULLIF(h.avg_sold, 0) * 100,
+        1
+    ) AS pct_diff_from_historical
+FROM rets_property p
+LEFT JOIN historical h
+    ON LOWER(TRIM(p.L_City)) = h.city_key
+WHERE p.L_SystemPrice IS NOT NULL
+GROUP BY
+    p.L_City,
+    h.avg_sold
+ORDER BY avg_active_price DESC;

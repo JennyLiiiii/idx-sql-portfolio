@@ -1,9 +1,17 @@
 -- ============================================================
--- IDX Exchange - Internship
+-- IDX Exchange - Data Analyst Internship
 -- Week 1: Schema Exploration
 -- Tables: rets_property, rets_openhouse, california_sold
--- Author: Jenny
+-- Author: Jenny Li
 -- ============================================================
+
+-- DATA QUALITY RECOMMENDATION
+-- The listing ID is unique in rets_property, but analysts should filter NULL
+-- prices and square footage before pricing analysis. Open-house records have a
+-- valid one-to-many relationship with listings, so joins must be deduplicated
+-- before calculating listing-level averages. Historical sold data also contains
+-- implausible future CloseDate values and inconsistent city coverage; validate
+-- dates and normalize city names before comparing active and sold properties.
 
 -- List all tables
 SHOW TABLES;
@@ -126,7 +134,7 @@ WHERE City NOT IN (
 )
 ORDER BY City
 LIMIT 20;
--- Note: typo in SQL guide that there is no L_City in california_sold, it is named City.
+
 SELECT COUNT(DISTINCT City) AS sold_cities_not_in_property
 FROM california_sold
 WHERE City NOT IN (
@@ -136,11 +144,18 @@ WHERE City NOT IN (
 );
 -- There are 100 mismatches
 
--- BROKEN: Count listings with missing price
-SELECT COUNT(*) AS missing_prices
-FROM rets_property
-WHERE L_SystemPrice = NULL; -- Bug: this will never match anything
+-- BROKEN: Count listings with a missing price.
+-- SELECT COUNT(*) AS missing_prices
+-- FROM rets_property
+-- WHERE L_SystemPrice = NULL;
 
-SELECT COUNT(*) AS missing_prices
-FROM rets_property rp 
-WHERE rp.L_SystemPrice IS NULL; -- Debug
+-- DEBUG NOTES:
+-- It returns no matches because NULL means "unknown," so an equality comparison
+-- is never TRUE. I diagnosed it by checking MySQL's NULL comparison rules.
+-- Fixed: use IS NULL, which is the SQL predicate designed to test missing values.
+
+-- FIXED:
+SELECT
+    COUNT(*) AS missing_prices
+FROM rets_property
+WHERE L_SystemPrice IS NULL;

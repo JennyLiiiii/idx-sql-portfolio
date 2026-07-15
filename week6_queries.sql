@@ -1,9 +1,16 @@
 -- ============================================================
--- IDX Exchange - Internship
--- Week 6: queries
--- Tables: rets_property, rets_openhouse, california_sold
--- Author: Jenny
+-- IDX Exchange - Data Analyst Internship
+-- Week 6: Window Functions
+-- Tables: rets_property, california_sold
+-- Author: Jenny Li
 -- ============================================================
+
+-- MARKET OPPORTUNITY RECOMMENDATION
+-- Treat cities with sale-to-list ratios above 100% and relatively constrained
+-- inventory as competitive. Treat cities with ratios below 100% and active list
+-- prices near or below historical sold prices as buyer opportunities. Apply a
+-- minimum sample size before presenting either label so small cities and price
+-- outliers do not dominate the investor summary.
 
 -- Window Functions
 SELECT City,
@@ -104,7 +111,7 @@ SELECT
 FROM flagged_listings
 WHERE is_more_than_2sd_above_mean = 1
    AND city_listing_count >= 10
-ORDER BY L_City, L_SystemPrice DESC
+ORDER BY L_City, L_SystemPrice DESC;
 
 -- Which cities have the most consistent pricing? (lowest std deviation relative to mean)
 WITH listing_base AS (
@@ -182,28 +189,36 @@ JOIN sold_city s
     ON LOWER(a.city) = LOWER(s.city)
 ORDER BY ratio DESC;
 
--- BROKEN: Most expensive listing in each city
-SELECT L_DisplayId, L_Address, City, ListPrice,
-RANK() OVER (
-PARTITION BY City ORDER BY ListPrice DESC
-) AS rank_in_city
-FROM rets_property
-WHERE ListPrice IS NOT NULL
-AND rank_in_city = 1 -- Bug: cannot filter on window function here
-ORDER BY City;
+-- BROKEN: Filter rank_in_city in the same query's WHERE clause.
+-- The original query used: AND rank_in_city = 1.
 
--- Debug
+-- DEBUG NOTES:
+-- The guide's original query filters rank_in_city in WHERE and MySQL reports
+-- "Unknown column rank_in_city" because WHERE runs before the window function
+-- creates that alias. I used the execution order to diagnose the error. 
+-- Fixed: calculate the rank in a CTE, then filter it in the outer query.
+
+-- FIXED:
 WITH ranked AS (
-	SELECT L_DisplayId, L_Address, L_City, L_SystemPrice,
+	SELECT
+	       L_DisplayId,
+	       L_Address,
+	       L_City,
+	       L_SystemPrice,
 		   RANK() OVER (
-		   	PARTITION BY L_City ORDER BY L_SystemPrice DESC
+		    PARTITION BY L_City ORDER BY L_SystemPrice DESC
 		   ) AS rank_in_city
 	FROM rets_property
 	WHERE L_SystemPrice IS NOT NULL
 	  AND L_City IS NOT NULL
 )
 
-SELECT *
+SELECT
+    L_DisplayId,
+    L_Address,
+    L_City,
+    L_SystemPrice,
+    rank_in_city
 FROM ranked
 WHERE rank_in_city = 1
 ORDER BY L_City;

@@ -1,9 +1,15 @@
 -- ============================================================
--- IDX Exchange - Internship
--- Week 3: queries
--- Tables: rets_property, rets_openhouse, california_sold
--- Author: Jenny
+-- IDX Exchange - Data Analyst Internship
+-- Week 3: Aggregations and Grouping
+-- Tables: rets_property
+-- Author: Jenny Li
 -- ============================================================
+
+-- FIRST-TIME BUYER RECOMMENDATION
+-- Recommend cities only after balancing three measures: enough inventory to
+-- offer buyers choice, a below-market average price, and a competitive price
+-- per square foot. This avoids recommending a city merely because a handful of
+-- unusually small or low-quality listings make its average look inexpensive.
 
 -- Group by L_City
 SELECT L_City,
@@ -48,18 +54,16 @@ WHERE rp.L_Keyword2 IS NOT NULL
 GROUP BY L_Keyword2
 ORDER BY L_Keyword2;
 
--- BROKEN: Cities with average price above $600k (min 5 listings)
-SELECT L_City,
-	   COUNT(*) AS total_listings,
-	   ROUND(AVG(L_SystemPrice), 0) AS avg_price
-FROM rets_property
-WHERE AVG(L_SystemPrice) > 600000 -- Bug: wrong clause for aggregate filter
-AND L_SystemPrice IS NOT NULL
-GROUP BY L_City
-HAVING COUNT(*) >= 5
-ORDER BY avg_price DESC;
+-- BROKEN: Cities with average price above $600k (minimum 5 listings).
+-- The original query placed AVG(L_SystemPrice) in the WHERE clause.
 
--- Debug
+-- DEBUG NOTES:
+-- The guide's original query puts AVG(L_SystemPrice) in WHERE and produces an
+-- "Invalid use of group function" error. I traced the error to SQL's execution
+-- order: WHERE filters rows before GROUP BY calculates AVG(). Fixed: keep the
+-- row-level NULL check in WHERE and move both aggregate conditions to HAVING.
+
+-- FIXED:
 SELECT L_City,
 	   COUNT(*) AS total_listings,
 	   ROUND(AVG(L_SystemPrice), 0) AS avg_price
