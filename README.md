@@ -63,6 +63,7 @@ idx-sql-portfolio/
   week4_openhouse_by_city.csv
   week5_list_vs_sold.csv
   week6_final_summary.csv
+  week7_investor_summary.csv
 ```
 
 ## Weekly Progression
